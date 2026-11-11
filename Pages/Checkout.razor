@@ -1,0 +1,160 @@
+
+@page "/checkout"
+@inject BlazingPizza.Services.OrderState OrderState
+@inject NavigationManager NavigationManager
+<PageTitle>Checkout - Blazing Pizza</PageTitle>
+<div class="main">
+    <div class="checkout-page">
+        <h1>Checkout</h1>
+        @if (orderSubmitted)
+        {
+            <div class="checkout-card checkout-success">
+                <h2>Order Placed Successfully!</h2>
+                <p>Thank you for ordering with Blazing Pizza.</p>
+                <p>Your order number is <strong>#@submittedOrderId</strong>.</p>
+                <div class="checkout-actions">
+                    <button class="btn btn-primary" @onclick="ReturnToPizzaSelection">
+                        Order More Pizza
+                    </button>
+                    <a class="btn btn-secondary" href="/my-orders">View My Orders</a>
+                </div>
+            </div>
+        }
+        else if (!OrderState.Order.Pizzas.Any())
+        {
+            <div class="checkout-card checkout-empty">
+                <h2>Your shopping cart is empty</h2>
+                <p>You haven't added any pizzas to your order yet.</p>
+                <div class="checkout-actions">
+                    <button class="btn btn-primary" @onclick="ReturnToPizzaSelection">
+                        Choose a Pizza
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@deliveryAddress" OnValidSubmit="SubmitOrder">
+                <DataAnnotationsValidator />
+                <div class="checkout-card">
+                    <h2>Your Order</h2>
+                    <div class="checkout-items">
+                        @foreach (var pizza in OrderState.Order.Pizzas)
+                        {
+                            <div class="checkout-item">
+                                <div class="title">
+                                    @pizza.Size" @pizza.Special.Name
+                                </div>
+                                <div class="item-price">
+                                    @pizza.GetFormattedTotalPrice()
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="checkout-summary">
+                        <span>Total:</span>
+                        <span class="total-price">
+                            @OrderState.Order.GetFormattedTotalPrice()
+                        </span>
+                    </div>
+                </div>
+                <div class="checkout-card checkout-form-card">
+                    <h2>Customer Information</h2>
+                    <p>Please provide your contact details so we can process your order.</p>
+                    <div class="checkout-form-group">
+                        <label for="customer-name">Full Name</label>
+                        <InputText id="customer-name" class="form-control" @bind-Value="deliveryAddress.Name" placeholder="Enter your full name" />
+                        <ValidationMessage For="@(() => deliveryAddress.Name)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="customer-email">Email Address</label>
+                        <InputText id="customer-email" type="email" class="form-control" @bind-Value="deliveryAddress.Email" placeholder="example@email.com" />
+                        <ValidationMessage For="@(() => deliveryAddress.Email)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="customer-phone">Phone Number</label>
+                        <InputText id="customer-phone" type="tel" class="form-control" @bind-Value="deliveryAddress.Phone" placeholder="Enter your phone number" />
+                        <ValidationMessage For="@(() => deliveryAddress.Phone)" />
+                    </div>
+                    <h2>Delivery Address</h2>
+                    <div class="checkout-form-group">
+                        <label for="address-line1">Street Address</label>
+                        <InputText id="address-line1" class="form-control" @bind-Value="deliveryAddress.Line1" placeholder="House number and street name" />
+                        <ValidationMessage For="@(() => deliveryAddress.Line1)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="address-line2">Additional Address Information <span class="optional-label">(Optional)</span></label>
+                        <InputText id="address-line2" class="form-control" @bind-Value="deliveryAddress.Line2" placeholder="Apartment, landmark, or additional directions" />
+                        <ValidationMessage For="@(() => deliveryAddress.Line2)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="delivery-city">City</label>
+                        <InputText id="delivery-city" class="form-control" @bind-Value="deliveryAddress.City" placeholder="Enter your city" />
+                        <ValidationMessage For="@(() => deliveryAddress.City)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="delivery-region">State</label>
+                        <InputText id="delivery-region" class="form-control" @bind-Value="deliveryAddress.Region" placeholder="Enter your state" />
+                        <ValidationMessage For="@(() => deliveryAddress.Region)" />
+                    </div>
+                    <div class="checkout-form-group">
+                        <label for="delivery-postal">Postal Code</label>
+                        <InputText id="delivery-postal" class="form-control" @bind-Value="deliveryAddress.PostalCode" placeholder="Enter your postal code" />
+                        <ValidationMessage For="@(() => deliveryAddress.PostalCode)" />
+                    </div>
+                    <ValidationSummary />
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <p class="checkout-error">@errorMessage</p>
+                    }
+                    <div class="checkout-actions">
+                        <button type="button" class="btn btn-primary" @onclick="ReturnToPizzaSelection" disabled="@isSubmitting">
+                            Continue Shopping
+                        </button>
+                        <button type="submit" class="btn btn-success" disabled="@isSubmitting">
+                            @(isSubmitting ? "Placing Order..." : "Place Order")
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+@code {
+    private Address deliveryAddress;
+    private bool isSubmitting;
+    private bool orderSubmitted;
+    private int submittedOrderId;
+    private string errorMessage;
+    protected override void OnInitialized()
+    {
+        OrderState.Order.DeliveryAddress ??= new Address();
+        deliveryAddress = OrderState.Order.DeliveryAddress;
+    }
+    private async Task SubmitOrder()
+    {
+        if (isSubmitting || !OrderState.Order.Pizzas.Any())
+        {
+            return;
+        }
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            submittedOrderId = await OrderState.PlaceOrder();
+            orderSubmitted = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Unable to place your order. Please try again. Details: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    private void ReturnToPizzaSelection()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

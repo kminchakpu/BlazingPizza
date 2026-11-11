@@ -1,6 +1,30 @@
+
 @inherits LayoutComponentBase
-
-<div class="content">
-    @Body
+<header class="top-bar">
+    <div class="logo">
+        <img src="img/logo.svg" alt="Blazing Pizza" />
+    </div>
+    <NavLink href="/" class="nav-tab" Match="NavLinkMatch.All">
+        <img src="img/pizza-slice.svg" alt="" />
+        Home
+    </NavLink>
+    <NavLink href="/checkout" class="nav-tab" Match="NavLinkMatch.All">
+        <img src="img/bike.svg" alt="" />
+        Checkout
+    </NavLink>
+    <NavLink href="/my-orders" class="nav-tab" Match="NavLinkMatch.All">
+        <img src="img/bike.svg" alt="" />
+        My Orders
+    </NavLink>
+</header>
+<div class="app-content">
+    <div class="content">
+        @Body
+    </div>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <p>&copy; @DateTime.Now.Year Blazing Pizza. All rights reserved.</p>
+            <p>Designed and developed by <strong>Kevin Cross Minchakpu</strong> <span class="footer-divider">|</span> Abuja, Nigeria</p>
+        </div>
+    </footer>
 </div>
-
